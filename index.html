@@ -140,6 +140,16 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tiles-mono{filter:grayscale(1) contrast(1.35) brightness(1.06) invert(.92)}}
 :root[data-theme="dark"] .tiles-mono{filter:grayscale(1) contrast(1.35) brightness(1.06) invert(.92)}
 .siteRow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch}
+.badge{font-size:11px;font-weight:700;border-radius:4px;padding:0 5px;border:1px solid var(--line);color:var(--sub);white-space:nowrap}
+.badge.ok{color:var(--ok);border-color:var(--ok)}.badge.warn{color:var(--warn);border-color:var(--warn)}
+.btn.big{padding:14px 18px;font-size:16px;width:100%}
+.savebar .in{flex-wrap:wrap}.bar-btns{display:flex;gap:8px;margin-left:auto}
+.sheet-bg{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--panel);color:var(--ink);width:100%;max-width:720px;max-height:85vh;overflow:auto;border-radius:16px 16px 0 0;display:flex;flex-direction:column;gap:12px;
+  padding:20px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));box-sizing:border-box}
+.sheet h2{margin:0;font-size:18px}
+.exlist{margin:0;padding-left:20px;font-size:14px;display:flex;flex-direction:column;gap:4px;overflow-wrap:anywhere}
+.howto{font-size:14px;color:var(--sub)}.howto ol{margin:8px 0 0;padding-left:20px}
 .siteRow .del{color:var(--warn);border-color:var(--line)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -147,7 +157,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <div class="l"><h1>現地調査シート</h1><span class="tag">試作 v0.6</span></div>
+      <div class="l"><h1>現地調査シート</h1><span class="tag">試作 v0.7</span></div>
       <button class="theme" id="themeBtn" aria-label="表示の明るさを切り替え">表示:自動</button>
     </div>
     <div class="seg" role="group" aria-label="画面の切り替え">
@@ -214,8 +224,9 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
     </section>
 
     <section class="card">
-      <h2><span class="n">5</span>OneDrive につないだときの形(確認)</h2>
-      <p class="note">今は iPhone の中に保存しています。OneDrive につないだあとは、この形でパソコンからも見られるようになります。</p>
+      <h2><span class="n">5</span>書き出し(Excel と写真)</h2>
+      <p class="note">「書き出す」を押すと Excel と写真ができて、保存先(OneDrive・Google ドライブ・会社の NAS など)を選べます。ファイル名に日付と現場名が入るので、同じフォルダにまとめて入れても分かります。</p>
+      <button class="btn primary big" id="btnExport2">書き出す(保存先を選ぶ)</button>
       <div class="tree" id="tree"></div>
       <div class="xl" id="xl"></div>
     </section>
@@ -232,7 +243,18 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 
 <div class="savebar" id="savebar"><div class="in">
   <span class="status" id="status" aria-live="polite">入力すると自動で保存します</span>
-  <button class="btn primary" id="btnNew">＋ 新しい現場</button>
+  <div class="bar-btns"><button class="btn" id="btnNew">＋ 新しい現場</button><button class="btn primary" id="btnExport">書き出す</button></div>
+</div></div>
+<div class="sheet-bg" id="exportSheet" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="exTitle">
+  <h2 id="exTitle">書き出し</h2>
+  <p class="note" id="exMsg" aria-live="polite"></p>
+  <ul class="exlist" id="exList"></ul>
+  <button class="btn primary big" id="btnShare" hidden>保存先を選ぶ</button>
+  <div id="exFallback" hidden><button class="btn primary big" id="btnDownload">ファイルをダウンロード</button></div>
+  <details class="howto"><summary>保存のしかた</summary>
+    <ol><li>「保存先を選ぶ」→「"ファイル"に保存」</li><li>OneDrive・Google ドライブ・NAS など、保存したい場所を選ぶ</li>
+    <li>フォルダを作るときは、右上のフォルダに「＋」のマーク</li><li>「保存」を押す</li></ol></details>
+  <button class="btn ghost" id="btnExClose">閉じる</button>
 </div></div>
 <div class="toast" id="toast" hidden></div>
 
@@ -260,7 +282,7 @@ const todayStr=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.get
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function blankRecord(){
   return {id:newId(),date:todayStr(),plan:"",site:"",name:"",tel:"",zip:"",zipIsAuto:false,addr:"",center:null,
-    contract:"",contractOther:"",cust:"",meter:"",spot:"",memo:"",pins:[],photos:[],createdAt:Date.now(),updatedAt:0};
+    contract:"",contractOther:"",cust:"",meter:"",spot:"",memo:"",pins:[],photos:[],createdAt:Date.now(),updatedAt:0,exportedAt:0};
 }
 function sampleRecord(){
   return Object.assign(blankRecord(),{date:"2026-10-19",plan:"2026-11-05",site:"見本様邸",name:"見本 太郎",tel:"000-0000-0000",
@@ -531,23 +553,273 @@ function folderName(){return `${state.date||"日付なし"}_${state.site||"現�
 function photoNames(){const cnt={};return state.photos.map(p=>{cnt[p.kind]=(cnt[p.kind]||0)+1;return `${p.kind}_${cnt[p.kind]}.jpg`;});}
 function renderPreview(){
   const [y,m]=(state.date||"----").split("-");const names=photoNames();
-  $("tree").textContent=`OneDrive/アプリ/現地調査/\n  ${y}年/\n    ${+m||"--"}月/\n      ${folderName()}/\n        調査表.xlsx\n        写真/`+
-    (names.length?names.map(n=>`\n          ${n}`).join(""):"\n          (まだありません)");
+  const ex=exportNames(state);
+  $("tree").textContent=`保存先の例:OneDrive/現地調査/${y}年${+m||"--"}月/\n  ${ex.xlsx}`+
+    (ex.photos.length?ex.photos.map(n=>`\n  ${n}`).join(""):"\n  (写真はまだありません)");
   const contract=state.contract==="その他(新電力)"?(state.contractOther||"その他"):state.contract;
   const rows=[["調査日",state.date,1],["工事予定日",state.plan,1],["客名",state.name],["住所",state.addr],["〒",state.zip,1],["TEL",state.tel,1],["電気契約",contract],
     ["お客様番号",state.cust,1],["計器番号",state.meter,1],["供給地点特定番号",state.spot,1],["メモ",state.memo]];
   $("xl").innerHTML=`<table>
-    <tr class="colh"><td colspan="3">調査表.xlsx ― シート「調査表」 ${esc(state.date)} ${esc(state.site)}</td></tr>
+    <tr class="colh"><td colspan="3">Excel の中身(見やすく整えた形で入ります)</td></tr>
     ${rows.map(r=>`<tr><th>${r[0]}</th><td colspan="2" class="${r[2]?"num":""}">${esc(r[1])}</td></tr>`).join("")}
-    <tr><th>地図</th><td colspan="2">ピンを立てた地図の画像が入ります(次の段階で作ります)</td></tr>
+    <tr><th>地図</th><td colspan="2">ピンと番号を入れた地図の画像が入ります</td></tr>
     <tr class="colh"><td>電柱</td><td>電柱番号</td><td>メモ</td></tr>
     ${state.pins.length?state.pins.map((p,i)=>`<tr><th>${i+1}</th><td class="num">${esc(p.no)}</td><td>${esc(p.memo)}</td></tr>`).join(""):`<tr><td colspan="3">(電柱なし)</td></tr>`}
-    <tr><th>写真</th><td colspan="2">${state.photos.length} 枚(写真フォルダ)</td></tr></table>`;
+    <tr><th>写真</th><td colspan="2">${state.photos.length} 枚(Excel とは別のファイル)</td></tr></table>`;
 }
 function refresh(save=true){renderPreview();if(save)scheduleSave();}
 
+// ===================== 書き出し(Excel と写真) =====================
+// Excel(.xlsx)は外の部品を使わずに、ここで作る(電波が弱くても作れるように)
+const XL={
+  enc:new TextEncoder(),
+  crcTable:(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})(),
+  crc(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=XL.crcTable[(c^b[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;},
+  // 圧縮しない ZIP(xlsx の入れ物)
+  zip(files){
+    const parts=[],central=[];let off=0;
+    for(const f of files){
+      const name=XL.enc.encode(f.name),data=typeof f.data==="string"?XL.enc.encode(f.data):f.data,crc=XL.crc(data);
+      const h=new DataView(new ArrayBuffer(30));
+      h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);
+      h.setUint16(10,0,true);h.setUint16(12,0x21,true);h.setUint32(14,crc,true);h.setUint32(18,data.length,true);
+      h.setUint32(22,data.length,true);h.setUint16(26,name.length,true);h.setUint16(28,0,true);
+      parts.push(new Uint8Array(h.buffer),name,data);
+      const c=new DataView(new ArrayBuffer(46));
+      c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(10,0,true);
+      c.setUint16(12,0,true);c.setUint16(14,0x21,true);c.setUint32(16,crc,true);c.setUint32(20,data.length,true);c.setUint32(24,data.length,true);
+      c.setUint16(28,name.length,true);c.setUint32(42,off,true);
+      central.push(new Uint8Array(c.buffer),name);
+      off+=30+name.length+data.length;
+    }
+    const csize=central.reduce((s,a)=>s+a.length,0),e=new DataView(new ArrayBuffer(22));
+    e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,csize,true);e.setUint32(16,off,true);
+    return new Blob([...parts,...central,new Uint8Array(e.buffer)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  },
+  x(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,"");},
+  // 見た目の種類(styles.xml の cellXfs の順番)
+  S:{title:1,sub:2,label:3,value:4,section:5,th:6,tdc:7,td:8,note:9,valueNum:10},
+  stylesXml(){
+    const F='<name val="游ゴシック"/><family val="3"/><charset val="128"/>';
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="6"><font><sz val="11"/>${F}</font><font><b/><sz val="18"/><color rgb="FF24463A"/>${F}</font>
+<font><sz val="10"/><color rgb="FF5D6A64"/>${F}</font><font><b/><sz val="11"/>${F}</font>
+<font><b/><sz val="11"/><color rgb="FFFFFFFF"/>${F}</font><font><sz val="12"/>${F}</font></fonts>
+<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFEEF2EF"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF24463A"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>
+<border><left style="thin"><color rgb="FFB7C2BC"/></left><right style="thin"><color rgb="FFB7C2BC"/></right><top style="thin"><color rgb="FFB7C2BC"/></top><bottom style="thin"><color rgb="FFB7C2BC"/></bottom><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="11">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment vertical="center"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment vertical="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment vertical="center"/></xf>
+<xf numFmtId="49" fontId="5" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyNumberFormat="1"><alignment vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment vertical="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="49" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyNumberFormat="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="49" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyNumberFormat="1"><alignment vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="49" fontId="5" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyNumberFormat="1"><alignment vertical="center"/></xf>
+</cellXfs><cellStyles count="1"><cellStyle name="標準" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  },
+  // rec:現場の記録、mapPng:地図の画像(Uint8Array)、photoNames:写真のファイル名
+  build(rec,mapPng,mapSize,photoNames){
+    const rows=[],merges=[],S=XL.S;let r=0;
+    const cols=["A","B","C","D"];
+    const row=(cells,ht)=>{r++;rows.push({r,cells,ht});return r;};
+    const full=(text,s,ht)=>{const n=row([[text,s],["",s],["",s],["",s]],ht);merges.push(`A${n}:D${n}`);return n;};
+    const kv=(label,val,num,ht)=>{const s=num?S.valueNum:S.value;const n=row([[label,S.label],[val,s],["",s],["",s]],ht);merges.push(`B${n}:D${n}`);};
+    const contract=rec.contract==="その他(新電力)"?(rec.contractOther||"その他(新電力)"):rec.contract;
+    full("現地調査票",S.title,30);
+    full(`${rec.site||"(現場名なし)"}  ・  調査日 ${rec.date||"-"}${rec.plan?"  ・  工事予定日 "+rec.plan:""}`,S.sub,18);
+    row([],8);
+    full("現場とお客様",S.section,20);
+    kv("調査日",rec.date,1,22);kv("工事予定日",rec.plan,1,22);kv("現場名",rec.site,0,22);kv("客名",rec.name,0,22);
+    kv("住所",rec.addr,0,30);kv("〒",rec.zip,1,22);kv("TEL",rec.tel,1,22);
+    row([],8);
+    full("メーターと電気契約",S.section,20);
+    kv("電気契約",contract,0,22);kv("お客様番号",rec.cust,1,22);kv("計器番号",rec.meter,1,22);kv("供給地点特定番号",rec.spot,1,22);
+    kv("メモ",rec.memo,0,Math.max(30,18*Math.ceil((rec.memo||"").length/34+((rec.memo||"").split("\n").length-1))));
+    row([],8);
+    full("地図(ピンの番号は下の電柱の表と同じ)",S.section,20);
+    const mapTop=r; // 0 始まりの行番号で、この次の行から画像
+    const mapRows=Math.ceil(mapSize.h/20);for(let i=0;i<mapRows;i++)row([],15);
+    full("出典:国土地理院(地理院タイル)",S.note,16);
+    row([],8);
+    full(`電柱(${rec.pins.length}本)`,S.section,20);
+    const th=row([["番号",S.th],["電柱番号",S.th],["メモ",S.th],["",S.th]],20);merges.push(`C${th}:D${th}`);
+    if(rec.pins.length)rec.pins.forEach((p,i)=>{const n=row([[String(i+1),S.tdc],[p.no,S.td],[p.memo,S.td],["",S.td]],22);merges.push(`C${n}:D${n}`);});
+    else full("(電柱なし)",S.td,22);
+    row([],8);
+    full(`写真(${photoNames.length}枚・同じ場所に保存したファイル)`,S.section,20);
+    if(photoNames.length)photoNames.forEach((nm,i)=>{const n=row([[String(i+1),S.tdc],[nm,S.td],["",S.td],["",S.td]],20);merges.push(`B${n}:D${n}`);});
+    else full("(写真なし)",S.td,20);
+    row([],8);
+    full("この調査票は「現地調査シート」で作りました。",S.note,16);
+
+    const sheetData=rows.map(({r,cells,ht})=>`<row r="${r}"${ht?` ht="${ht}" customHeight="1"`:""}>`+
+      cells.map((c,i)=>c[0]!==""&&c[0]!=null?`<c r="${cols[i]}${r}" s="${c[1]}" t="inlineStr"><is><t xml:space="preserve">${XL.x(c[0])}</t></is></c>`:`<c r="${cols[i]}${r}" s="${c[1]}"/>`).join("")+`</row>`).join("");
+    const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews>
+<sheetFormatPr defaultRowHeight="15"/><cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="4" width="24" customWidth="1"/></cols>
+<sheetData>${sheetData}</sheetData><mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>
+<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/>
+${mapPng?'<drawing r:id="rId1"/>':""}</worksheet>`;
+    const E=9525;
+    const drawing=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${mapTop}</xdr:row><xdr:rowOff>${4*E}</xdr:rowOff></xdr:from>
+<xdr:ext cx="${mapSize.w*E}" cy="${mapSize.h*E}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="2" name="地図"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>
+<xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>
+<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${mapSize.w*E}" cy="${mapSize.h*E}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:ln w="9525"><a:solidFill><a:srgbClr val="B7C2BC"/></a:solidFill></a:ln></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor></xdr:wsDr>`;
+    const files=[
+      {name:"[Content_Types].xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${mapPng?'<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>':""}</Types>`},
+      {name:"_rels/.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+      {name:"xl/workbook.xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="調査票" sheetId="1" r:id="rId1"/></sheets></workbook>`},
+      {name:"xl/_rels/workbook.xml.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+      {name:"xl/styles.xml",data:XL.stylesXml()},
+      {name:"xl/worksheets/sheet1.xml",data:sheet}
+    ];
+    if(mapPng){
+      files.push({name:"xl/worksheets/_rels/sheet1.xml.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>`});
+      files.push({name:"xl/drawings/drawing1.xml",data:drawing});
+      files.push({name:"xl/drawings/_rels/drawing1.xml.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/></Relationships>`});
+      files.push({name:"xl/media/image1.png",data:mapPng});
+    }
+    return XL.zip(files);
+  }
+};
+
+// ---- 地図を1枚の画像にする(Excel 用) ----
+const MAPIMG={w:640,h:440,scale:2};
+function lonToX(lon,z){return (lon+180)/360*256*2**z;}
+function latToY(lat,z){const s=Math.sin(lat*Math.PI/180);return (0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*256*2**z;}
+function loadTile(url){return new Promise(res=>{const im=new Image();im.crossOrigin="anonymous";im.onload=()=>res(im);im.onerror=()=>res(null);im.src=url;setTimeout(()=>res(null),8000);});}
+async function renderMapImage(rec){
+  const W=MAPIMG.w*MAPIMG.scale,H=MAPIMG.h*MAPIMG.scale;
+  const pts=[...(rec.center?[{lat:rec.center[0],lng:rec.center[1]}]:[]),...rec.pins];
+  if(!pts.length)return null;
+  // すべての点が入る、いちばん大きいズーム(最大 18)
+  let z=18;
+  const pad=70*MAPIMG.scale/2;
+  for(;z>10;z--){
+    const xs=pts.map(p=>lonToX(p.lng,z)),ys=pts.map(p=>latToY(p.lat,z));
+    if((Math.max(...xs)-Math.min(...xs))*2<=W-pad*2&&(Math.max(...ys)-Math.min(...ys))*2<=H-pad*2)break;
+  }
+  // 画像は 2 倍の細かさで描くので、タイルは z+1 を使う
+  const tz=Math.min(z+1,18),k=2**(z+1-tz); // k:タイル1枚を何倍に描くか
+  const xs=pts.map(p=>lonToX(p.lng,z+1)),ys=pts.map(p=>latToY(p.lat,z+1));
+  const cx=(Math.max(...xs)+Math.min(...xs))/2,cy=(Math.max(...ys)+Math.min(...ys))/2;
+  const left=cx-W/2,top=cy-H/2;
+  const draw=async(withTiles)=>{
+    const c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");
+    g.fillStyle="#f4f5f3";g.fillRect(0,0,W,H);
+    let ok=0;
+    if(withTiles){
+      const size=256*k,x0=Math.floor(left/size),x1=Math.floor((left+W)/size),y0=Math.floor(top/size),y1=Math.floor((top+H)/size);
+      const jobs=[];
+      for(let tx=x0;tx<=x1;tx++)for(let ty=y0;ty<=y1;ty++)
+        jobs.push(loadTile(`https://cyberjapandata.gsi.go.jp/xyz/pale/${tz}/${tx}/${ty}.png`).then(im=>{if(im){g.drawImage(im,tx*size-left,ty*size-top,size,size);ok++;}}));
+      await Promise.all(jobs);
+      // モノトーンにする
+      const d=g.getImageData(0,0,W,H),a=d.data;
+      for(let i=0;i<a.length;i+=4){let v=0.3*a[i]+0.59*a[i+1]+0.11*a[i+2];v=Math.min(255,Math.max(0,(v-128)*1.35+128+10));a[i]=a[i+1]=a[i+2]=v;}
+      g.putImageData(d,0,0);
+    }
+    const P=(lat,lng)=>[lonToX(lng,z+1)-left,latToY(lat,z+1)-top];
+    const s=MAPIMG.scale;
+    if(rec.center){const [x,y]=P(rec.center[0],rec.center[1]);
+      g.fillStyle="#e2a400";g.strokeStyle="#fff";g.lineWidth=2*s;g.beginPath();g.roundRect?g.roundRect(x-12*s,y-12*s,24*s,24*s,5*s):g.rect(x-12*s,y-12*s,24*s,24*s);g.fill();g.stroke();
+      g.fillStyle="#2a2000";g.font=`bold ${12*s}px sans-serif`;g.textAlign="center";g.textBaseline="middle";g.fillText("家",x,y+0.5*s);}
+    rec.pins.forEach((p,i)=>{const [x,y]=P(p.lat,p.lng);
+      g.fillStyle="#d0461f";g.strokeStyle="#fff";g.lineWidth=2*s;
+      g.beginPath();g.arc(x,y-20*s,13*s,Math.PI*0.8,Math.PI*0.2);g.lineTo(x,y);g.closePath();g.fill();g.stroke();
+      g.fillStyle="#fff";g.font=`bold ${13*s}px sans-serif`;g.textAlign="center";g.textBaseline="middle";g.fillText(String(i+1),x,y-20*s);});
+    g.fillStyle="rgba(255,255,255,.85)";g.fillRect(W-150*s,H-18*s,150*s,18*s);
+    g.fillStyle="#5d6a64";g.font=`${10*s}px sans-serif`;g.textAlign="right";g.textBaseline="middle";g.fillText(ok?"出典:国土地理院":"地図を読み込めませんでした",W-6*s,H-9*s);
+    const blob=await new Promise(res=>c.toBlob(res,"image/png"));
+    return new Uint8Array(await blob.arrayBuffer());
+  };
+  try{return await draw(true);}catch(e){return await draw(false);} // 地図が使えないときは、ピンだけの画像
+}
+
+// ---- ファイル名 ----
+function safeName(s){return String(s||"").replace(/[\\/:*?"<>|\u0000-\u001F]/g,"_").replace(/\s+/g," ").trim().slice(0,60);}
+function filePrefix(rec){return `${rec.date||"日付なし"}_${safeName(rec.site)||"現場名なし"}`;}
+function exportNames(rec){
+  const cnt={};const pre=filePrefix(rec);
+  return {xlsx:`${pre}_調査表.xlsx`,photos:rec.photos.map(p=>{cnt[p.kind]=(cnt[p.kind]||0)+1;return `${pre}_${p.kind}_${cnt[p.kind]}.jpg`;})};
+}
+
+// ---- 書き出しの画面 ----
+let exportFiles=null;
+async function prepareExport(){
+  if(!hasContent(state)){toast("まだ何も入力されていません");return;}
+  if(saveTimer)await saveNow();
+  $("exportSheet").hidden=false;$("exList").innerHTML="";$("btnShare").hidden=true;$("exFallback").hidden=true;
+  $("exMsg").textContent="Excel と写真を準備しています…(地図の読み込みに数秒かかります)";
+  try{
+    const names=exportNames(state);
+    const png=await renderMapImage(state);
+    const xlsx=XL.build(state,png,{w:MAPIMG.w,h:MAPIMG.h},names.photos);
+    exportFiles=[new File([xlsx],names.xlsx,{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),
+      ...state.photos.map((p,i)=>new File([p.blob],names.photos[i],{type:"image/jpeg"}))];
+    $("exList").innerHTML=exportFiles.map(f=>`<li>${esc(f.name)} <span class="note">(${Math.max(1,Math.round(f.size/1024))} KB)</span></li>`).join("");
+    const canShare=!!(navigator.canShare&&navigator.canShare({files:exportFiles}));
+    if(canShare){
+      $("exMsg").textContent=`${exportFiles.length} 個のファイルができました。下のボタンで保存先を選んでください。`;
+      $("btnShare").hidden=false;$("btnShare").focus();
+    }else{
+      $("exMsg").textContent="この画面では保存先を選ぶ画面が使えません。下のボタンで、ファイルを1つずつダウンロードできます。";
+      $("exFallback").hidden=false;
+    }
+  }catch(e){
+    $("exMsg").textContent="準備の途中で問題が起きました。もう一度「書き出す」を押してください。("+(e&&e.message||e)+")";
+  }
+}
+async function shareExport(){
+  if(!exportFiles)return;
+  try{
+    await navigator.share({files:exportFiles,title:filePrefix(state)});
+    markExported();
+    $("exMsg").textContent="保存先の画面を閉じました。保存できたか、保存先のフォルダで確認してください。";
+  }catch(e){
+    if(e&&e.name==="AbortError")$("exMsg").textContent="キャンセルしました。もう一度「保存先を選ぶ」を押せます。";
+    else $("exMsg").textContent="保存先の画面を開けませんでした。もう一度「書き出す」からやり直してください。";
+  }
+}
+function downloadExport(){
+  if(!exportFiles)return;
+  exportFiles.forEach((f,i)=>setTimeout(()=>{const a=document.createElement("a");a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},4000);},i*400));
+  markExported();
+}
+function markExported(){state.exportedAt=Date.now();state.exportedVer=state.updatedAt;saveNow();}
+$("btnExport").onclick=prepareExport;
+$("btnExport2").onclick=prepareExport;
+$("btnShare").onclick=shareExport;
+$("btnDownload").onclick=downloadExport;
+$("btnExClose").onclick=()=>{$("exportSheet").hidden=true;exportFiles=null;};
+
 // ---- 保存した現場の一覧 ----
 let pendingDelete=null;
+function exportBadge(s){
+  if(!s.exportedAt)return '<span class="badge">未書き出し</span>';
+  return s.updatedAt-s.exportedAt>3000?'<span class="badge warn">書き出し後に変更あり</span>':'<span class="badge ok">書き出し済み</span>';
+}
 async function renderSites(){
   let items=[];
   if(dbReady){try{items=await DB.all();}catch(e){}}
@@ -561,7 +833,7 @@ async function renderSites(){
     Object.keys(byY[y]).sort((a,b)=>b-a).map(m=>`<p class="month">${m}月</p><div class="list">`+
       byY[y][m].map(s=>`<div class="siteRow">
         <button class="site" data-open="${s.id}"><span class="d">${esc((s.date||"").slice(5).replace("-","/"))}</span>
-        <span class="nm">${esc(s.site||"(現場名なし)")}${s.id===state.id?' <em class="auto">編集中</em>':""}</span><span class="meta">電柱${s.pins.length}・写真${s.photos.length}</span>
+        <span class="nm">${esc(s.site||"(現場名なし)")}${s.id===state.id?' <em class="auto">編集中</em>':""}</span><span class="meta">電柱${s.pins.length}・写真${s.photos.length} ${exportBadge(s)}</span>
         <span class="addr">${esc(s.addr||"")}${s.plan?` ・工事予定 ${esc(s.plan.slice(5).replace("-","/"))}`:""}</span></button>
         <button class="btn ghost del" data-del="${s.id}">${pendingDelete===s.id?"本当に消す":"消す"}</button></div>`).join("")+`</div>`).join("")+`</div>`).join("");
   $("sites").querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{
