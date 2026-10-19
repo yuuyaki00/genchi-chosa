@@ -139,18 +139,20 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .tiles-mono{filter:grayscale(1) contrast(1.35) brightness(1.06)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tiles-mono{filter:grayscale(1) contrast(1.35) brightness(1.06) invert(.92)}}
 :root[data-theme="dark"] .tiles-mono{filter:grayscale(1) contrast(1.35) brightness(1.06) invert(.92)}
+.siteRow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch}
+.siteRow .del{color:var(--warn);border-color:var(--line)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <div class="l"><h1>現地調査シート</h1><span class="tag">試作 v0.5・サンプルデータ</span></div>
+      <div class="l"><h1>現地調査シート</h1><span class="tag">試作 v0.6</span></div>
       <button class="theme" id="themeBtn" aria-label="表示の明るさを切り替え">表示:自動</button>
     </div>
     <div class="seg" role="group" aria-label="画面の切り替え">
       <button id="tabInput" aria-pressed="true">現場で入力(スマホ)</button>
-      <button id="tabList" aria-pressed="false">会社で見る(パソコン)</button>
+      <button id="tabList" aria-pressed="false">保存した現場</button>
     </div>
   </header>
 
@@ -212,24 +214,25 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
     </section>
 
     <section class="card">
-      <h2><span class="n">5</span>保存されるもの(確認)</h2>
-      <p class="note">保存すると、OneDrive にこの形で入ります。パソコンでは Excel で開いて手直しできます。</p>
+      <h2><span class="n">5</span>OneDrive につないだときの形(確認)</h2>
+      <p class="note">今は iPhone の中に保存しています。OneDrive につないだあとは、この形でパソコンからも見られるようになります。</p>
       <div class="tree" id="tree"></div>
       <div class="xl" id="xl"></div>
     </section>
   </div>
 
-  <!-- ===== 一覧画面 ===== -->
+  <!-- ===== 保存した現場 ===== -->
   <div id="viewList" class="wrap" hidden>
-    <p class="samplebar">パソコンのブラウザで同じツールを開いたときの一覧の見本です。OneDrive の「現地調査」フォルダの中身を、年・月ごとに並べます。</p>
+    <p class="samplebar">この iPhone の中に保存した現場です。開くと続きを書けます。<br>ホーム画面のアイコンから開いたときと、Safari から開いたときは、別々に保存されます。<b>いつもアイコンから開いてください。</b></p>
     <label class="f"><span>探す(現場名・住所)</span><input id="q" placeholder="例:山田"></label>
     <div id="sites" class="wrap"></div>
+    <p class="note" id="storageInfo"></p>
   </div>
 </div>
 
 <div class="savebar" id="savebar"><div class="in">
-  <span class="status" id="status">入力中</span>
-  <button class="btn primary" id="btnSave">OneDrive に保存</button>
+  <span class="status" id="status" aria-live="polite">入力すると自動で保存します</span>
+  <button class="btn primary" id="btnNew">＋ 新しい現場</button>
 </div></div>
 <div class="toast" id="toast" hidden></div>
 
@@ -250,26 +253,72 @@ function applyTheme(){
 $("themeBtn").onclick=()=>{theme=THEMES[(THEMES.indexOf(theme)+1)%3];applyTheme();try{localStorage.setItem("genchi.theme",theme);}catch(e){}};
 applyTheme();
 
-// ---- サンプルの初期データ(架空) ----
+// ---- 初期データ ----
 const USE_SAMPLE=false; // 見本データで始めるか(スマホ版を作るときに false になる)
 const SAMPLE_CENTER=[35.6812,139.7671]; // 見本の位置(Claude 上で外の地図が使えないとき)
-const today=(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;})();
-const state=USE_SAMPLE?{
-  date:"2026-10-19", plan:"2026-11-05", site:"見本様邸", name:"見本 太郎", tel:"000-0000-0000", zip:"", zipIsAuto:false,
-  addr:"サンプル県見本市試作町1-2-3", center:null, contract:"東京電力EP", contractOther:"",
-  cust:"0000-000-000", meter:"12-3456-78", spot:"03 0000 0000 0000 0000 0001", memo:"分電盤は勝手口の内側。主幹 50A(見本)",
-  pins:[], photos:[]
-}:{date:today,plan:"",site:"",name:"",tel:"",zip:"",zipIsAuto:false,addr:"",center:null,contract:"",contractOther:"",
-  cust:"",meter:"",spot:"",memo:"",pins:[],photos:[]};
-let saved=[
-  {date:"2026-10-12",site:"試験様邸",addr:"サンプル県見本市一丁目",poles:3,photos:5},
-  {date:"2026-10-03",site:"見本アパート",addr:"サンプル県見本市二丁目",poles:2,photos:8},
-  {date:"2026-09-21",site:"架空商店",addr:"サンプル県架空町4-5",poles:1,photos:4},
-  {date:"2025-12-08",site:"例示様邸",addr:"サンプル県例示村6",poles:2,photos:3}
-];
+const todayStr=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;};
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function blankRecord(){
+  return {id:newId(),date:todayStr(),plan:"",site:"",name:"",tel:"",zip:"",zipIsAuto:false,addr:"",center:null,
+    contract:"",contractOther:"",cust:"",meter:"",spot:"",memo:"",pins:[],photos:[],createdAt:Date.now(),updatedAt:0};
+}
+function sampleRecord(){
+  return Object.assign(blankRecord(),{date:"2026-10-19",plan:"2026-11-05",site:"見本様邸",name:"見本 太郎",tel:"000-0000-0000",
+    addr:"サンプル県見本市試作町1-2-3",center:SAMPLE_CENTER,contract:"東京電力EP",cust:"0000-000-000",meter:"12-3456-78",
+    spot:"03 0000 0000 0000 0000 0001",memo:"分電盤は勝手口の内側。主幹 50A(見本)",
+    pins:[{lat:SAMPLE_CENTER[0]+0.00035,lng:SAMPLE_CENTER[1]-0.0004,no:"見本幹 12",memo:""},
+          {lat:SAMPLE_CENTER[0]-0.0003,lng:SAMPLE_CENTER[1]+0.00045,no:"見本幹 13 東1",memo:"引込元"}]});
+}
+let state=blankRecord();
+let loading=false; // 読み込み中は自動保存しない
+
+// ---- iPhone の中の保存場所(IndexedDB) ----
+const DB={
+  db:null,
+  open(){return new Promise((ok,ng)=>{
+    if(!("indexedDB" in window))return ng(new Error("この端末では保存できません"));
+    const r=indexedDB.open("genchi-chosa",1);
+    r.onupgradeneeded=()=>{r.result.createObjectStore("sites",{keyPath:"id"});};
+    r.onsuccess=()=>{this.db=r.result;ok();};r.onerror=()=>ng(r.error);
+  });},
+  tx(mode){return this.db.transaction("sites",mode).objectStore("sites");},
+  put(rec){return new Promise((ok,ng)=>{const q=this.tx("readwrite").put(rec);q.onsuccess=ok;q.onerror=()=>ng(q.error);});},
+  get(id){return new Promise((ok,ng)=>{const q=this.tx("readonly").get(id);q.onsuccess=()=>ok(q.result);q.onerror=()=>ng(q.error);});},
+  all(){return new Promise((ok,ng)=>{const q=this.tx("readonly").getAll();q.onsuccess=()=>ok(q.result||[]);q.onerror=()=>ng(q.error);});},
+  del(id){return new Promise((ok,ng)=>{const q=this.tx("readwrite").delete(id);q.onsuccess=ok;q.onerror=()=>ng(q.error);});}
+};
+let dbReady=false;
+
+function hasContent(r){return !!(r.site||r.name||r.addr||r.tel||r.cust||r.meter||r.spot||r.memo||r.pins.length||r.photos.length);}
+function toStored(r){ // 画面用の写真 URL を外して保存用の形に
+  return Object.assign({},r,{photos:r.photos.map(p=>({blob:p.blob,kind:p.kind})),pins:r.pins.map(p=>({lat:p.lat,lng:p.lng,no:p.no,memo:p.memo}))});
+}
+let saveTimer=null;
+function scheduleSave(){
+  if(loading)return;
+  clearTimeout(saveTimer);
+  $("status").textContent="保存しています…";
+  saveTimer=setTimeout(saveNow,600);
+}
+async function saveNow(){
+  clearTimeout(saveTimer);
+  if(!dbReady){$("status").textContent="この端末では保存できません";return;}
+  if(!hasContent(state)){$("status").textContent="入力すると自動で保存します";return;}
+  state.updatedAt=Date.now();
+  try{
+    await DB.put(toStored(state));
+    try{localStorage.setItem("genchi.current",state.id);}catch(e){}
+    const d=new Date(state.updatedAt);
+    $("status").textContent=`iPhone に保存済み ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}・電柱${state.pins.length}・写真${state.photos.length}`;
+  }catch(e){
+    $("status").textContent="保存できませんでした(容量がいっぱいかもしれません)";
+  }
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&saveTimer)saveNow();});
 
 // ---- 地図(国土地理院の地図。読めないときは見本の絵) ----
 let map=null,homeMarker=null,offline=false,offlineLayer=null;const pinMarkers=[];
+let baseLayers={},currentLayer=null;
 function sampleStreetsSvg(){
   const s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="#f3f4f1"/>
   <path d="M0 190 H400 M210 0 V400 M0 300 H210 M300 190 V400" stroke="#d9ddd8" stroke-width="22"/>
@@ -279,17 +328,16 @@ function sampleStreetsSvg(){
   return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s);
 }
 function initMap(){
-  if(!window.L){$("map").innerHTML=`<div class="empty" style="margin:16px">地図の部品が読み込めませんでした</div>`;return;}
-  map=L.map("map",{zoomControl:true,attributionControl:true}).setView(SAMPLE_CENTER,18);
+  if(!window.L){$("map").innerHTML=`<div class="empty" style="margin:16px">地図の部品が読み込めませんでした(電波を確認してください)</div>`;return;}
+  map=L.map("map",{zoomControl:true,attributionControl:true}).setView(SAMPLE_CENTER,14);
   const attr='<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">出典:国土地理院</a>';
   const mk=(id,ext,maxNative,cls="")=>L.tileLayer(`https://cyberjapandata.gsi.go.jp/xyz/${id}/{z}/{x}/{y}.${ext}`,{maxZoom:20,maxNativeZoom:maxNative,attribution:attr,className:cls});
   baseLayers={mono:mk("pale","png",18,"tiles-mono"),pale:mk("pale","png",18),std:mk("std","png",18),photo:mk("seamlessphoto","jpg",18)};
-  let errs=0;Object.values(baseLayers).forEach(t=>t.on("tileerror",()=>{if(++errs===3)goOffline();}));
+  let errs=0;Object.values(baseLayers).forEach(t=>t.on("tileerror",()=>{if(++errs===3&&USE_SAMPLE)goOffline();}));
   let style="mono";try{style=localStorage.getItem("genchi.mapStyle2")||"mono";}catch(e){}
   setMapStyle(baseLayers[style]?style:"mono");
   map.on("click",e=>{addPin(e.latlng);});
 }
-let baseLayers={},currentLayer=null;
 function setMapStyle(s){
   if(!map)return;
   if(currentLayer)currentLayer.remove();
@@ -301,7 +349,7 @@ document.querySelectorAll("#mapStyle .chip").forEach(b=>b.onclick=()=>setMapStyl
 function goOffline(){
   if(offline)return;offline=true;
   $("modeNote").textContent="中身はすべて架空のサンプルです。Claude 上では外の地図・住所検索につながらないため、見本の地図と見本の郵便番号で動きます。ブラウザで直接開くと本物が出ます。";
-  placeOfflineLayer(map.getCenter());
+  if(map)placeOfflineLayer(map.getCenter());
 }
 function placeOfflineLayer(c){
   if(offlineLayer)offlineLayer.remove();
@@ -323,11 +371,22 @@ function setHome(latlng){
 function pinIcon(n){return L.divIcon({className:"pinicon",html:`<div><span>${n}</span></div>`,iconSize:[28,36],iconAnchor:[14,34]});}
 function addPin(latlng,no="",memo=""){
   const p={lat:latlng.lat,lng:latlng.lng,no,memo};state.pins.push(p);
-  const m=L.marker(latlng,{icon:pinIcon(state.pins.length),draggable:true}).addTo(map);
-  m.on("dragend",()=>{const ll=m.getLatLng();p.lat=ll.lat;p.lng=ll.lng;refresh();});
-  pinMarkers.push(m);renderPoles();refresh();
+  if(map){
+    const m=L.marker(latlng,{icon:pinIcon(state.pins.length),draggable:true}).addTo(map);
+    m.on("dragend",()=>{const ll=m.getLatLng();p.lat=ll.lat;p.lng=ll.lng;refresh();});
+    pinMarkers.push(m);
+  }
+  renderPoles();refresh();
 }
-function removePin(i){state.pins.splice(i,1);pinMarkers.splice(i,1)[0].remove();pinMarkers.forEach((m,k)=>m.setIcon(pinIcon(k+1)));renderPoles();refresh();}
+function removePin(i){
+  state.pins.splice(i,1);
+  const m=pinMarkers.splice(i,1)[0];if(m)m.remove();
+  pinMarkers.forEach((m,k)=>m.setIcon(pinIcon(k+1)));renderPoles();refresh();
+}
+function clearMap(){
+  pinMarkers.splice(0).forEach(m=>m.remove());
+  if(homeMarker){homeMarker.remove();homeMarker=null;}
+}
 $("btnUndo").onclick=()=>{if(state.pins.length)removePin(state.pins.length-1);};
 $("btnCenter").onclick=()=>{if(state.center&&map)map.setView(state.center,18);else toast("先に住所を入れて「地図を出す」を押してください");};
 
@@ -353,7 +412,7 @@ function useCand(i){
   $("findMsg").textContent=townOnly
     ?`番地までは見つからず、「${title}」の位置を出しています。家のマークを動かして合わせてください。`
     :`見つかった場所:${title}(番地の位置は少しずれることがあります)`;
-  setHome(pos);fillZip(pos);
+  setHome(pos);fillZip(pos);refresh();
 }
 async function findAddress(){
   const raw=state.addr.trim();if(!raw){toast("住所を入れてください");return;}
@@ -371,10 +430,13 @@ async function findAddress(){
         $("cands").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>useCand(+b.dataset.i));
       }
       useCand(0);return;
-    }catch(e){goOffline();}
+    }catch(e){
+      if(USE_SAMPLE)goOffline();
+      else{$("findMsg").className="note warn";$("findMsg").textContent="住所を探せませんでした(電波を確認してください)。地図を動かして、家のマークで合わせることもできます。";return;}
+    }
   }
   $("findMsg").textContent=`(見本)Claude 上なので、見本の場所を出しています。検索に使う住所:${q}`;
-  setHome(SAMPLE_CENTER);await fillZip(SAMPLE_CENTER);
+  setHome(SAMPLE_CENTER);await fillZip(SAMPLE_CENTER);refresh();
 }
 async function fillZip(pos){
   if(state.zip&&!state.zipIsAuto)return; // 手で入れた郵便番号は上書きしない
@@ -410,30 +472,61 @@ function renderPoles(){
 // ---- 電気契約 ----
 function renderContract(){
   $("contract").innerHTML=CONTRACTS.map(c=>`<button class="chip" aria-pressed="${state.contract===c}" data-c="${c}">${c}</button>`).join("");
-  $("contract").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{state.contract=b.dataset.c;renderContract();refresh();});
+  $("contract").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{state.contract=state.contract===b.dataset.c?"":b.dataset.c;renderContract();refresh();});
   $("contractOtherWrap").hidden=state.contract!=="その他(新電力)";
 }
 
-// ---- 写真 ----
-$("photoIn").addEventListener("change",e=>{
-  for(const f of e.target.files)state.photos.push({url:URL.createObjectURL(f),kind:"分電盤"});
-  e.target.value="";renderPhotos();refresh();
+// ---- 写真(小さくしてから保存) ----
+function shrinkPhoto(file,max=1600){
+  return new Promise(res=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{
+      const k=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+      const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+      c.toBlob(b=>res(b||file),"image/jpeg",0.82);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);res(file);};
+    img.src=url;
+  });
+}
+$("photoIn").addEventListener("change",async e=>{
+  const files=[...e.target.files];e.target.value="";
+  $("status").textContent="写真を取り込んでいます…";
+  for(const f of files){const blob=await shrinkPhoto(f);state.photos.push({blob,url:URL.createObjectURL(blob),kind:"分電盤"});}
+  renderPhotos();refresh();
 });
 function renderPhotos(){
   $("photos").innerHTML=state.photos.map((p,i)=>`<div class="ph">
     <div class="img" style="background-image:url('${p.url}')"><button class="x" data-del="${i}" aria-label="写真${i+1}を消す">×</button></div>
     <select id="ph_kind_${i}" aria-label="写真${i+1}の種類">${PHOTO_KINDS.map(k=>`<option ${k===p.kind?"selected":""}>${k}</option>`).join("")}</select></div>`).join("");
   $("photos").querySelectorAll("select").forEach(s=>s.onchange=()=>{state.photos[+s.id.split("_")[2]].kind=s.value;refresh();});
-  $("photos").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{state.photos.splice(+b.dataset.del,1);renderPhotos();refresh();});
+  $("photos").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const p=state.photos.splice(+b.dataset.del,1)[0];if(p)URL.revokeObjectURL(p.url);renderPhotos();refresh();});
 }
 
 // ---- 入力欄とつなぐ ----
 const FIELDS={f_date:"date",f_plan:"plan",f_site:"site",f_name:"name",f_tel:"tel",f_addr:"addr",f_contractOther:"contractOther",
   f_cust:"cust",f_meter:"meter",f_spot:"spot",f_memo:"memo"};
-for(const [id,k] of Object.entries(FIELDS)){$(id).value=state[k];$(id).addEventListener("input",()=>{state[k]=$(id).value;refresh();});}
+for(const [id,k] of Object.entries(FIELDS))$(id).addEventListener("input",()=>{state[k]=$(id).value;refresh();});
 $("f_zip").addEventListener("input",()=>{state.zip=$("f_zip").value;state.zipIsAuto=false;$("zipAuto").hidden=true;refresh();});
 
-// ---- 保存イメージ ----
+// ---- 1件を画面に出す ----
+function loadIntoForm(rec){
+  loading=true;
+  state.photos.forEach(p=>p.url&&URL.revokeObjectURL(p.url));
+  clearMap();
+  state=Object.assign(blankRecord(),rec,{pins:[],photos:(rec.photos||[]).map(p=>({blob:p.blob,kind:p.kind,url:URL.createObjectURL(p.blob)}))});
+  for(const [id,k] of Object.entries(FIELDS))$(id).value=state[k]||"";
+  $("f_zip").value=state.zip||"";$("zipAuto").hidden=!state.zipIsAuto;
+  $("findMsg").textContent="";$("cands").innerHTML="";
+  (rec.pins||[]).forEach(p=>addPin({lat:p.lat,lng:p.lng},p.no,p.memo));
+  if(state.center)setHome(state.center);else if(map)map.setView(SAMPLE_CENTER,14);
+  renderContract();renderPoles();renderPhotos();
+  loading=false;refresh(false);
+  $("status").textContent=rec.updatedAt?"開きました(入力すると自動で保存します)":"入力すると自動で保存します";
+}
+
+// ---- OneDrive につないだときの形 ----
 function folderName(){return `${state.date||"日付なし"}_${state.site||"現場名なし"}`;}
 function photoNames(){const cnt={};return state.photos.map(p=>{cnt[p.kind]=(cnt[p.kind]||0)+1;return `${p.kind}_${cnt[p.kind]}.jpg`;});}
 function renderPreview(){
@@ -451,47 +544,73 @@ function renderPreview(){
     ${state.pins.length?state.pins.map((p,i)=>`<tr><th>${i+1}</th><td class="num">${esc(p.no)}</td><td>${esc(p.memo)}</td></tr>`).join(""):`<tr><td colspan="3">(電柱なし)</td></tr>`}
     <tr><th>写真</th><td colspan="2">${state.photos.length} 枚(写真フォルダ)</td></tr></table>`;
 }
-function refresh(){renderPreview();$("status").textContent=`電柱 ${state.pins.length}本・写真 ${state.photos.length}枚`;}
+function refresh(save=true){renderPreview();if(save)scheduleSave();}
 
-// ---- 一覧 ----
-function renderSites(){
+// ---- 保存した現場の一覧 ----
+let pendingDelete=null;
+async function renderSites(){
+  let items=[];
+  if(dbReady){try{items=await DB.all();}catch(e){}}
+  items=items.filter(hasContent);
   const q=$("q").value.trim();
-  const items=saved.filter(s=>!q||(s.site+s.addr).includes(q)).sort((a,b)=>b.date.localeCompare(a.date));
-  if(!items.length){$("sites").innerHTML=`<div class="empty">見つかりませんでした</div>`;return;}
-  const byY={};items.forEach(s=>{const [y,m]=s.date.split("-");((byY[y]??={})[+m]??=[]).push(s);});
-  $("sites").innerHTML=Object.keys(byY).sort().reverse().map(y=>`<div><p class="year">${y}年</p>`+
+  const shown=items.filter(s=>!q||((s.site||"")+(s.addr||"")+(s.name||"")).includes(q)).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||b.updatedAt-a.updatedAt);
+  if(!items.length){$("sites").innerHTML=`<div class="empty">まだ保存した現場はありません。入力画面で書き始めると、自動でここに入ります。</div>`;showStorage();return;}
+  if(!shown.length){$("sites").innerHTML=`<div class="empty">見つかりませんでした</div>`;return;}
+  const byY={};shown.forEach(s=>{const [y,m]=(s.date||"日付なし-0").split("-");((byY[y]??={})[+m||0]??=[]).push(s);});
+  $("sites").innerHTML=Object.keys(byY).sort().reverse().map(y=>`<div><p class="year">${esc(y)}年</p>`+
     Object.keys(byY[y]).sort((a,b)=>b-a).map(m=>`<p class="month">${m}月</p><div class="list">`+
-      byY[y][m].map(s=>`<button class="site"><span class="d">${s.date.slice(5).replace("-","/")}</span>
-        <span class="nm">${esc(s.site)}</span><span class="meta">電柱${s.poles}・写真${s.photos}</span><span class="addr">${esc(s.addr)}</span></button>`).join("")+`</div>`).join("")+`</div>`).join("");
-  $("sites").querySelectorAll(".site").forEach(b=>b.onclick=()=>toast("本番では、この現場の調査表(Excel)と写真フォルダを開きます"));
+      byY[y][m].map(s=>`<div class="siteRow">
+        <button class="site" data-open="${s.id}"><span class="d">${esc((s.date||"").slice(5).replace("-","/"))}</span>
+        <span class="nm">${esc(s.site||"(現場名なし)")}${s.id===state.id?' <em class="auto">編集中</em>':""}</span><span class="meta">電柱${s.pins.length}・写真${s.photos.length}</span>
+        <span class="addr">${esc(s.addr||"")}${s.plan?` ・工事予定 ${esc(s.plan.slice(5).replace("-","/"))}`:""}</span></button>
+        <button class="btn ghost del" data-del="${s.id}">${pendingDelete===s.id?"本当に消す":"消す"}</button></div>`).join("")+`</div>`).join("")+`</div>`).join("");
+  $("sites").querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{
+    const rec=await DB.get(b.dataset.open);if(rec){loadIntoForm(rec);try{localStorage.setItem("genchi.current",rec.id);}catch(e){}show(false);}
+  });
+  $("sites").querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.del;
+    if(pendingDelete!==id){pendingDelete=id;renderSites();return;}
+    pendingDelete=null;await DB.del(id);
+    if(id===state.id)loadIntoForm(blankRecord());
+    toast("消しました");renderSites();
+  });
+  showStorage();
+}
+async function showStorage(){
+  try{
+    const est=await navigator.storage?.estimate?.();
+    if(est&&est.usage!=null)$("storageInfo").textContent=`この iPhone で使っている容量:約 ${(est.usage/1048576).toFixed(1)} MB`;
+  }catch(e){}
 }
 $("q").oninput=renderSites;
 
-// ---- 切り替え・保存 ----
+// ---- 切り替え・新しい現場 ----
 function show(list){
+  if(list&&saveTimer)saveNow();
   $("viewInput").hidden=list;$("viewList").hidden=!list;$("savebar").hidden=list;
   $("tabInput").setAttribute("aria-pressed",!list);$("tabList").setAttribute("aria-pressed",list);
+  pendingDelete=null;
   if(list)renderSites();else if(map)setTimeout(()=>map.invalidateSize(),50);window.scrollTo(0,0);
 }
 $("tabInput").onclick=()=>show(false);$("tabList").onclick=()=>show(true);
-$("btnSave").onclick=()=>{
-  if(!state.site){toast("現場名を入れてください(フォルダ名になります)");$("f_site").focus();return;}
-  saved=saved.filter(s=>s.date+s.site!==state.date+state.site);
-  saved.push({date:state.date,site:state.site,addr:state.addr,poles:state.pins.length,photos:state.photos.length});
-  toast(`保存しました(試作:一覧に追加しただけです)\n現地調査/${folderName()}`);
+$("btnNew").onclick=async()=>{
+  if(saveTimer)await saveNow();
+  loadIntoForm(blankRecord());window.scrollTo(0,0);toast("新しい現場を始めました。前の現場は「保存した現場」にあります");
 };
 let tt;function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,2800);}
 
 // ---- はじめ ----
-renderContract();renderPoles();renderPhotos();refresh();initMap();
-if(map&&USE_SAMPLE){ // 見本の電柱を2本
-  addPin({lat:SAMPLE_CENTER[0]+0.00035,lng:SAMPLE_CENTER[1]-0.0004},"見本幹 12","");
-  addPin({lat:SAMPLE_CENTER[0]-0.0003,lng:SAMPLE_CENTER[1]+0.00045},"見本幹 13 東1","引込元");
-  setHome(SAMPLE_CENTER);
-}else if(map){map.setView(SAMPLE_CENTER,14);}
-if(!USE_SAMPLE){
-  $("modeNote").textContent="試作版です。保存の機能はまだつながっていません(OneDrive への保存は次の段階で追加します)。お客様の情報はまだ入れないでください。";
-}
+(async()=>{
+  initMap();
+  try{await DB.open();dbReady=true;}catch(e){$("status").textContent="この端末では保存できません";}
+  try{await navigator.storage?.persist?.();}catch(e){}
+  let rec=null;
+  if(dbReady){try{const id=localStorage.getItem("genchi.current");if(id)rec=await DB.get(id);}catch(e){}}
+  if(!rec&&USE_SAMPLE)rec=sampleRecord();
+  loadIntoForm(rec||blankRecord());
+  if(!USE_SAMPLE)$("modeNote").textContent="試作版です。入力したものは、この iPhone の中に自動で保存されます(OneDrive への保存は次の段階で追加します)。";
+  else $("modeNote").textContent="中身は架空のサンプルです。入力したものは、このブラウザの中に自動で保存されます。";
+})();
 </script>
 
 </html>
