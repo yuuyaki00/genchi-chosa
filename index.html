@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#24463a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="現地調査">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>現地調査シート</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 現場で片手で打てる縦長フォーム。上に切り替え、下に保存バー。工事写真の黒板と安全色の黄をヒントに */
+:root{
+  --bg:#eef0ee; --panel:#ffffff; --ink:#1d2421; --sub:#5d6a64; --line:#cfd6d2;
+  --accent:#e2a400; --accent-ink:#2a2000; --board:#24463a; --board-ink:#eef5ef;
+  --pin:#d0461f; --road:#dfe3df; --block:#f7f8f6; --ok:#2f7a4f; --warn:#a4481f;
+  --font:"BIZ UDPGothic","Hiragino Sans","Yu Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141917; --panel:#1d2421; --ink:#e7ece9; --sub:#9aa8a1; --line:#34403b;
+  --accent:#f0b81c; --accent-ink:#231a00; --board:#2c5546; --board-ink:#eef5ef;
+  --pin:#ff7a52; --road:#2a332f; --block:#222a27; --ok:#5fc08a; --warn:#ff9a6e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --panel:#1d2421; --ink:#e7ece9; --sub:#9aa8a1; --line:#34403b;
+  --accent:#f0b81c; --accent-ink:#231a00; --board:#2c5546; --board-ink:#eef5ef;
+  --pin:#ff7a52; --road:#2a332f; --block:#222a27; --ok:#5fc08a; --warn:#ff9a6e; color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.6;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 96px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--bg);padding-block:12px 8px;display:flex;flex-direction:column;gap:10px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.brand .l{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.brand h1{margin:0;font-size:20px;letter-spacing:.04em}
+.tag{font-size:12px;color:var(--accent-ink);background:var(--accent);padding:2px 8px;border-radius:4px;font-weight:700}
+.theme{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px;gap:4px}
+.seg button{font:inherit;font-size:14px;border:0;border-radius:7px;padding:8px;background:transparent;color:var(--sub);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--board);color:var(--board-ink);font-weight:700}
+.note{font-size:13px;color:var(--sub);margin:0}
+.note.warn{color:var(--warn)}
+section.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+section.card h2{margin:0;font-size:16px;display:flex;align-items:center;gap:8px}
+section.card h2 .n{font-family:var(--mono);font-size:12px;color:var(--sub);border:1px solid var(--line);border-radius:4px;padding:0 6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid2 .wide{grid-column:1/-1}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}}
+label.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+label.f > span{font-size:13px;color:var(--sub);font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.auto{font-size:11px;font-weight:700;color:var(--ok);border:1px solid var(--ok);border-radius:4px;padding:0 5px}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;box-sizing:border-box;min-width:0}
+input.num{font-family:var(--mono);letter-spacing:.04em}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;gap:8px;min-width:0}
+.row input{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 14px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer;white-space:nowrap}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn.ghost{background:transparent}
+.maptools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mapbox{position:relative;isolation:isolate;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--block);height:320px;max-width:100%}
+#map{position:absolute;inset:0}
+.poles{display:flex;flex-direction:column;gap:8px}
+.pole{display:grid;grid-template-columns:40px 1fr 1fr 40px;gap:8px;align-items:center}
+@media (max-width:520px){.pole{grid-template-columns:40px 1fr 40px}.pole .memo{grid-column:2/3}}
+.pid{font-family:var(--mono);font-size:13px;background:var(--pin);color:#fff;border-radius:6px;text-align:center;padding:6px 0}
+.x{font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--sub);border-radius:8px;height:40px;cursor:pointer}
+.empty{font-size:14px;color:var(--sub);border:1px dashed var(--line);border-radius:8px;padding:12px;text-align:center}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.ph{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ph .img{aspect-ratio:4/3;border-radius:8px;background:var(--bg) center/cover no-repeat;border:1px solid var(--line);position:relative;max-width:100%}
+.ph .img .x{position:absolute;top:4px;right:4px;height:30px;width:30px;padding:0}
+.ph select{font-size:14px;padding:6px 8px}
+.upload{display:flex;align-items:center;justify-content:center;gap:8px;border:2px dashed var(--line);border-radius:10px;padding:16px;cursor:pointer;font-weight:700;color:var(--sub)}
+.upload input{display:none}
+.savebar{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--panel);border-top:1px solid var(--line);
+  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.savebar .in{max-width:720px;margin:0 auto;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.savebar .status{font-size:13px;color:var(--sub)}
+.savebar .btn{padding:12px 20px;font-size:16px}
+.tree{font-family:var(--mono);font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;white-space:pre;line-height:1.7}
+.xl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+.xl table{border-collapse:collapse;width:100%;min-width:520px;font-size:14px;background:var(--panel)}
+.xl th,.xl td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.xl th{background:var(--bg);color:var(--sub);font-weight:700;width:9em}
+.xl td.num{font-family:var(--mono)}
+.xl .colh td{background:var(--bg);color:var(--sub);font-weight:700}
+.year{font-size:18px;font-weight:700;margin:0}
+.month{font-size:14px;color:var(--sub);font-weight:700;margin:8px 0 4px}
+.site{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);cursor:pointer;text-align:left;font:inherit;color:var(--ink);width:100%}
+.site:hover{border-color:var(--accent)}
+.site .d{font-family:var(--mono);font-size:13px;color:var(--sub)}
+.site .nm{font-weight:700;min-width:0;overflow-wrap:anywhere}
+.site .meta{font-size:12px;color:var(--sub)}
+.site .addr{grid-column:2/4;font-size:13px;color:var(--sub);min-width:0;overflow-wrap:anywhere}
+.list{display:flex;flex-direction:column;gap:8px}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--board);color:var(--board-ink);padding:10px 16px;border-radius:8px;font-size:14px;z-index:70;max-width:90vw;white-space:pre-line}
+.samplebar{font-size:13px;background:var(--board);color:var(--board-ink);border-radius:8px;padding:8px 12px;margin:0}
+/* 電柱ピン */
+.pinicon{width:28px;height:36px}
+.pinicon div{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--pin);border:2px solid #fff;box-shadow:0 1px 3px #0006;display:flex;align-items:center;justify-content:center}
+.pinicon span{transform:rotate(45deg);color:#fff;font:700 12px var(--mono)}
+.homeicon div{width:22px;height:22px;border-radius:5px;background:var(--accent);border:2px solid #fff;box-shadow:0 1px 3px #0006;display:flex;align-items:center;justify-content:center;font:700 11px var(--font);color:var(--accent-ink)}
+/* Leaflet の最低限の見た目(外部の CSS が読めないため、ここに入れている) */
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
+.leaflet-container{overflow:hidden;font:12px var(--font);-webkit-tap-highlight-color:transparent;background:var(--block);outline:0;touch-action:none}
+.leaflet-tile,.leaflet-marker-icon{-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
+.leaflet-container img.leaflet-tile,.leaflet-container img.leaflet-image-layer,.leaflet-container .leaflet-marker-icon{max-width:none!important;max-height:none!important}
+.leaflet-tile{filter:inherit;visibility:hidden}.leaflet-tile-loaded{visibility:inherit}
+.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}.leaflet-marker-pane{z-index:600}.leaflet-popup-pane{z-index:700}
+.leaflet-zoom-animated{transform-origin:0 0}
+.leaflet-zoom-anim .leaflet-zoom-animated{transition:transform .25s cubic-bezier(0,0,.25,1)}
+.leaflet-zoom-anim .leaflet-tile,.leaflet-pan-anim .leaflet-tile{transition:none}
+.leaflet-interactive{cursor:pointer}.leaflet-grab{cursor:grab}.leaflet-dragging .leaflet-grab{cursor:grabbing}
+.leaflet-control{position:relative;z-index:800;pointer-events:auto;float:left;clear:both}
+.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
+.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}
+.leaflet-right .leaflet-control{float:right}
+.leaflet-top .leaflet-control{margin-top:10px}.leaflet-left .leaflet-control{margin-left:10px}.leaflet-right .leaflet-control{margin-right:0}.leaflet-bottom .leaflet-control{margin-bottom:0}
+.leaflet-bar{border-radius:8px;border:1px solid var(--line);overflow:hidden;background:var(--panel)}
+.leaflet-bar a{display:block;width:36px;height:36px;line-height:36px;text-align:center;text-decoration:none;color:var(--ink);font:700 18px var(--font);background:var(--panel)}
+.leaflet-bar a+a{border-top:1px solid var(--line)}
+.leaflet-control-attribution{font-size:10px;background:var(--panel);color:var(--sub);padding:0 6px;opacity:.9}
+.leaflet-control-attribution a{color:var(--sub)}
+/* モノトーン:淡色地図の色を抜いて、線をくっきりさせる。ダーク表示では白黒を反転 */
+.tiles-mono{filter:grayscale(1) contrast(1.35) brightness(1.06)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tiles-mono{filter:grayscale(1) contrast(1.35) brightness(1.06) invert(.92)}}
+:root[data-theme="dark"] .tiles-mono{filter:grayscale(1) contrast(1.35) brightness(1.06) invert(.92)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="l"><h1>現地調査シート</h1><span class="tag">試作 v0.5・サンプルデータ</span></div>
+      <button class="theme" id="themeBtn" aria-label="表示の明るさを切り替え">表示:自動</button>
+    </div>
+    <div class="seg" role="group" aria-label="画面の切り替え">
+      <button id="tabInput" aria-pressed="true">現場で入力(スマホ)</button>
+      <button id="tabList" aria-pressed="false">会社で見る(パソコン)</button>
+    </div>
+  </header>
+
+  <!-- ===== 入力画面 ===== -->
+  <div id="viewInput" class="wrap">
+    <p class="samplebar" id="modeNote">中身はすべて架空のサンプルです。この試作では保存はされません(OneDrive へは次の段階でつなぎます)。</p>
+
+    <section class="card">
+      <h2><span class="n">1</span>現場とお客様</h2>
+      <div class="grid2">
+        <label class="f"><span>調査日</span><input id="f_date" type="date"></label>
+        <label class="f"><span>工事予定日</span><input id="f_plan" type="date"></label>
+        <label class="f wide"><span>現場名(フォルダ名になります)</span><input id="f_site" placeholder="例:山田様邸"></label>
+        <label class="f"><span>客名</span><input id="f_name"></label>
+        <label class="f"><span>TEL</span><input id="f_tel" class="num" inputmode="tel"></label>
+        <label class="f wide"><span>住所(入れると地図と郵便番号が出ます)</span>
+          <div class="row"><input id="f_addr" placeholder="例:○○県○○市○○町1-2-3"><button class="btn primary" id="btnFind">地図を出す</button></div></label>
+        <label class="f"><span>〒 <em class="auto" id="zipAuto" hidden>自動で入力</em></span><input id="f_zip" class="num" inputmode="numeric" placeholder="住所から自動で入ります"></label>
+      </div>
+      <p class="note" id="findMsg" aria-live="polite"></p>
+      <div class="chips" id="cands" role="group" aria-label="住所の候補"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">2</span>地図と電柱</h2>
+      <p class="note">地図をタップすると電柱のピンが立ちます。ピンは指で動かせます。番号は下の欄に入れます。<br>現場の位置がずれていたら、<b>「家」のマークを指で動かして</b>合わせてください。</p>
+      <div class="maptools">
+        <button class="btn" id="btnCenter">現場を真ん中に</button>
+        <button class="btn ghost" id="btnUndo">最後のピンを消す</button>
+      </div>
+      <div class="chips" id="mapStyle" role="group" aria-label="地図の種類">
+        <button class="chip" data-s="mono" aria-pressed="true">モノトーン</button>
+        <button class="chip" data-s="pale" aria-pressed="false">すっきり(淡色)</button>
+        <button class="chip" data-s="std" aria-pressed="false">くわしい(標準)</button>
+        <button class="chip" data-s="photo" aria-pressed="false">航空写真</button>
+      </div>
+      <div class="mapbox"><div id="map" role="application" aria-label="地図。タップで電柱を追加"></div></div>
+      <div class="poles" id="poles"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">3</span>メーターと電気契約</h2>
+      <label class="f"><span>電気契約(選んでください)</span></label>
+      <div class="chips" id="contract"></div>
+      <label class="f" id="contractOtherWrap" hidden><span>その他の会社名</span><input id="f_contractOther"></label>
+      <div class="grid2">
+        <label class="f"><span>お客様番号</span><input id="f_cust" class="num" inputmode="numeric"></label>
+        <label class="f"><span>計器番号(メーター)</span><input id="f_meter" class="num"></label>
+        <label class="f wide"><span>供給地点特定番号(22桁)</span><input id="f_spot" class="num" inputmode="numeric" maxlength="27" placeholder="03 0000 0000 0000 0000 0000"></label>
+      </div>
+      <label class="f"><span>メモ</span><textarea id="f_memo" rows="3"></textarea></label>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">4</span>写真</h2>
+      <p class="note">写真は表には入れず、同じ現場フォルダの「写真」に入ります。種類を選ぶと、ファイル名に使われます。</p>
+      <label class="upload"><input id="photoIn" type="file" accept="image/*" multiple>＋ 写真を撮る・選ぶ</label>
+      <div class="photos" id="photos"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">5</span>保存されるもの(確認)</h2>
+      <p class="note">保存すると、OneDrive にこの形で入ります。パソコンでは Excel で開いて手直しできます。</p>
+      <div class="tree" id="tree"></div>
+      <div class="xl" id="xl"></div>
+    </section>
+  </div>
+
+  <!-- ===== 一覧画面 ===== -->
+  <div id="viewList" class="wrap" hidden>
+    <p class="samplebar">パソコンのブラウザで同じツールを開いたときの一覧の見本です。OneDrive の「現地調査」フォルダの中身を、年・月ごとに並べます。</p>
+    <label class="f"><span>探す(現場名・住所)</span><input id="q" placeholder="例:山田"></label>
+    <div id="sites" class="wrap"></div>
+  </div>
+</div>
+
+<div class="savebar" id="savebar"><div class="in">
+  <span class="status" id="status">入力中</span>
+  <button class="btn primary" id="btnSave">OneDrive に保存</button>
+</div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const CONTRACTS=["東京電力EP","その他(新電力)","不明"];
+const PHOTO_KINDS=["分電盤","メーター","電柱","引込","外観","その他"];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+// ---- 表示の明るさ(自動 → ライト → ダーク) ----
+const THEMES=["auto","light","dark"],THEME_NAME={auto:"自動",light:"ライト",dark:"ダーク"};
+let theme="auto";try{theme=localStorage.getItem("genchi.theme")||"auto";}catch(e){}
+function applyTheme(){
+  if(theme==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",theme);
+  $("themeBtn").textContent="表示:"+THEME_NAME[theme];
+}
+$("themeBtn").onclick=()=>{theme=THEMES[(THEMES.indexOf(theme)+1)%3];applyTheme();try{localStorage.setItem("genchi.theme",theme);}catch(e){}};
+applyTheme();
+
+// ---- サンプルの初期データ(架空) ----
+const USE_SAMPLE=false; // 見本データで始めるか(スマホ版を作るときに false になる)
+const SAMPLE_CENTER=[35.6812,139.7671]; // 見本の位置(Claude 上で外の地図が使えないとき)
+const today=(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;})();
+const state=USE_SAMPLE?{
+  date:"2026-10-19", plan:"2026-11-05", site:"見本様邸", name:"見本 太郎", tel:"000-0000-0000", zip:"", zipIsAuto:false,
+  addr:"サンプル県見本市試作町1-2-3", center:null, contract:"東京電力EP", contractOther:"",
+  cust:"0000-000-000", meter:"12-3456-78", spot:"03 0000 0000 0000 0000 0001", memo:"分電盤は勝手口の内側。主幹 50A(見本)",
+  pins:[], photos:[]
+}:{date:today,plan:"",site:"",name:"",tel:"",zip:"",zipIsAuto:false,addr:"",center:null,contract:"",contractOther:"",
+  cust:"",meter:"",spot:"",memo:"",pins:[],photos:[]};
+let saved=[
+  {date:"2026-10-12",site:"試験様邸",addr:"サンプル県見本市一丁目",poles:3,photos:5},
+  {date:"2026-10-03",site:"見本アパート",addr:"サンプル県見本市二丁目",poles:2,photos:8},
+  {date:"2026-09-21",site:"架空商店",addr:"サンプル県架空町4-5",poles:1,photos:4},
+  {date:"2025-12-08",site:"例示様邸",addr:"サンプル県例示村6",poles:2,photos:3}
+];
+
+// ---- 地図(国土地理院の地図。読めないときは見本の絵) ----
+let map=null,homeMarker=null,offline=false,offlineLayer=null;const pinMarkers=[];
+function sampleStreetsSvg(){
+  const s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="#f3f4f1"/>
+  <path d="M0 190 H400 M210 0 V400 M0 300 H210 M300 190 V400" stroke="#d9ddd8" stroke-width="22"/>
+  <g fill="#fbfbfa" stroke="#c9cfca"><rect x="20" y="20" width="80" height="150"/><rect x="115" y="20" width="80" height="70"/><rect x="115" y="105" width="80" height="65"/>
+  <rect x="230" y="20" width="150" height="150"/><rect x="20" y="210" width="80" height="75"/><rect x="230" y="210" width="55" height="170"/><rect x="315" y="210" width="70" height="170"/><rect x="20" y="320" width="175" height="60"/></g>
+  <text x="200" y="395" text-anchor="middle" font-size="11" fill="#7a857f">見本の地図(Claude 上では本物の地図が出せません)</text></svg>`;
+  return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s);
+}
+function initMap(){
+  if(!window.L){$("map").innerHTML=`<div class="empty" style="margin:16px">地図の部品が読み込めませんでした</div>`;return;}
+  map=L.map("map",{zoomControl:true,attributionControl:true}).setView(SAMPLE_CENTER,18);
+  const attr='<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">出典:国土地理院</a>';
+  const mk=(id,ext,maxNative,cls="")=>L.tileLayer(`https://cyberjapandata.gsi.go.jp/xyz/${id}/{z}/{x}/{y}.${ext}`,{maxZoom:20,maxNativeZoom:maxNative,attribution:attr,className:cls});
+  baseLayers={mono:mk("pale","png",18,"tiles-mono"),pale:mk("pale","png",18),std:mk("std","png",18),photo:mk("seamlessphoto","jpg",18)};
+  let errs=0;Object.values(baseLayers).forEach(t=>t.on("tileerror",()=>{if(++errs===3)goOffline();}));
+  let style="mono";try{style=localStorage.getItem("genchi.mapStyle2")||"mono";}catch(e){}
+  setMapStyle(baseLayers[style]?style:"mono");
+  map.on("click",e=>{addPin(e.latlng);});
+}
+let baseLayers={},currentLayer=null;
+function setMapStyle(s){
+  if(!map)return;
+  if(currentLayer)currentLayer.remove();
+  currentLayer=baseLayers[s].addTo(map);currentLayer.bringToBack();
+  document.querySelectorAll("#mapStyle .chip").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===s));
+  try{localStorage.setItem("genchi.mapStyle2",s);}catch(e){}
+}
+document.querySelectorAll("#mapStyle .chip").forEach(b=>b.onclick=()=>setMapStyle(b.dataset.s));
+function goOffline(){
+  if(offline)return;offline=true;
+  $("modeNote").textContent="中身はすべて架空のサンプルです。Claude 上では外の地図・住所検索につながらないため、見本の地図と見本の郵便番号で動きます。ブラウザで直接開くと本物が出ます。";
+  placeOfflineLayer(map.getCenter());
+}
+function placeOfflineLayer(c){
+  if(offlineLayer)offlineLayer.remove();
+  const d=0.0012;offlineLayer=L.imageOverlay(sampleStreetsSvg(),[[c.lat-d,c.lng-d*1.25],[c.lat+d,c.lng+d*1.25]]).addTo(map);
+}
+function setHome(latlng){
+  state.center=[latlng.lat??latlng[0],latlng.lng??latlng[1]];
+  if(!map)return;
+  map.setView(state.center,18);
+  if(offline)placeOfflineLayer(map.getCenter());
+  const ic=L.divIcon({className:"homeicon",html:"<div>家</div>",iconSize:[26,26],iconAnchor:[13,13]});
+  if(homeMarker)homeMarker.setLatLng(state.center);
+  else{
+    homeMarker=L.marker(state.center,{icon:ic,draggable:true,zIndexOffset:1000}).addTo(map);
+    homeMarker.on("dragend",()=>{const ll=homeMarker.getLatLng();state.center=[ll.lat,ll.lng];
+      $("findMsg").className="note";$("findMsg").textContent="現場の位置を手で合わせました。";refresh();});
+  }
+}
+function pinIcon(n){return L.divIcon({className:"pinicon",html:`<div><span>${n}</span></div>`,iconSize:[28,36],iconAnchor:[14,34]});}
+function addPin(latlng,no="",memo=""){
+  const p={lat:latlng.lat,lng:latlng.lng,no,memo};state.pins.push(p);
+  const m=L.marker(latlng,{icon:pinIcon(state.pins.length),draggable:true}).addTo(map);
+  m.on("dragend",()=>{const ll=m.getLatLng();p.lat=ll.lat;p.lng=ll.lng;refresh();});
+  pinMarkers.push(m);renderPoles();refresh();
+}
+function removePin(i){state.pins.splice(i,1);pinMarkers.splice(i,1)[0].remove();pinMarkers.forEach((m,k)=>m.setIcon(pinIcon(k+1)));renderPoles();refresh();}
+$("btnUndo").onclick=()=>{if(state.pins.length)removePin(state.pins.length-1);};
+$("btnCenter").onclick=()=>{if(state.center&&map)map.setView(state.center,18);else toast("先に住所を入れて「地図を出す」を押してください");};
+
+// ---- 住所 → 地図・郵便番号 ----
+// 住所の書き方をそろえる(全角→半角、1丁目→一丁目、ハイフンの種類、空白)
+const KANJI=["","一","二","三","四","五","六","七","八","九"];
+function toKanji(n){n=+n;if(n<10)return KANJI[n];if(n<20)return "十"+KANJI[n-10];if(n<100)return KANJI[Math.floor(n/10)]+"十"+KANJI[n%10];return String(n);}
+function normalizeAddr(s){
+  return s.replace(/[０-９Ａ-Ｚａ-ｚ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
+    .replace(/\s+/g,"")
+    .replace(/(\d)[‐－―−ー‑–—](?=\d)/g,"$1-")
+    .replace(/(\D)(\d+)-(\d+)-(\d+)$/,(m,p,a,b,c)=>p+a+"丁目"+b+"-"+c)
+    .replace(/(\d+)丁目/g,(m,n)=>toKanji(n)+"丁目")
+    .replace(/(\d+)番地?の?(\d+)号?/g,"$1-$2").replace(/(\d+)番地?$/,"$1");
+}
+let lastCands=[];
+function useCand(i){
+  const c=lastCands[i],pos=[c.geometry.coordinates[1],c.geometry.coordinates[0]];
+  document.querySelectorAll("#cands .chip").forEach((b,k)=>b.setAttribute("aria-pressed",k===i));
+  const title=c.properties.title,q=normalizeAddr(state.addr);
+  const townOnly=/\d/.test(q)&&!/\d/.test(title);
+  $("findMsg").className=townOnly?"note warn":"note";
+  $("findMsg").textContent=townOnly
+    ?`番地までは見つからず、「${title}」の位置を出しています。家のマークを動かして合わせてください。`
+    :`見つかった場所:${title}(番地の位置は少しずれることがあります)`;
+  setHome(pos);fillZip(pos);
+}
+async function findAddress(){
+  const raw=state.addr.trim();if(!raw){toast("住所を入れてください");return;}
+  const q=normalizeAddr(raw);
+  $("findMsg").className="note";$("findMsg").textContent="住所を探しています…";$("cands").innerHTML="";
+  if(!offline){
+    try{
+      const r=await fetch("https://msearch.gsi.go.jp/address-search/AddressSearch?q="+encodeURIComponent(q));
+      const js=await r.json();
+      if(!js.length){$("findMsg").className="note warn";$("findMsg").textContent="住所が見つかりませんでした。番地を省いて試すか、地図を動かしてください。";return;}
+      lastCands=js.slice(0,5);
+      if(lastCands.length>1){
+        $("cands").innerHTML=`<span class="note" style="width:100%">候補が${lastCands.length}件あります。違うときは選び直してください:</span>`+
+          lastCands.map((c,i)=>`<button class="chip" aria-pressed="${i===0}" data-i="${i}">${esc(c.properties.title)}</button>`).join("");
+        $("cands").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>useCand(+b.dataset.i));
+      }
+      useCand(0);return;
+    }catch(e){goOffline();}
+  }
+  $("findMsg").textContent=`(見本)Claude 上なので、見本の場所を出しています。検索に使う住所:${q}`;
+  setHome(SAMPLE_CENTER);await fillZip(SAMPLE_CENTER);
+}
+async function fillZip(pos){
+  if(state.zip&&!state.zipIsAuto)return; // 手で入れた郵便番号は上書きしない
+  let zip="";
+  if(offline){zip="000-0000";}
+  else{
+    try{
+      const r=await fetch(`https://geoapi.heartrails.com/api/json?method=searchByGeoLocation&x=${pos[1]}&y=${pos[0]}`);
+      const js=await r.json();const p=js?.response?.location?.[0]?.postal;
+      if(p)zip=String(p).replace(/^(\d{3})(\d{4})$/,"$1-$2");
+    }catch(e){}
+  }
+  if(zip){state.zip=zip;state.zipIsAuto=true;$("f_zip").value=zip;$("zipAuto").hidden=false;refresh();}
+  else{$("findMsg").textContent+=" 郵便番号は自動で見つからなかったので、手で入れてください。";}
+}
+$("btnFind").onclick=findAddress;
+$("f_addr").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();findAddress();}});
+$("f_addr").addEventListener("change",findAddress);
+
+// ---- 電柱の表 ----
+function renderPoles(){
+  const el=$("poles");
+  if(!state.pins.length){el.innerHTML=`<div class="empty">地図をタップして、近くの電柱を追加してください</div>`;return;}
+  el.innerHTML=state.pins.map((p,i)=>`<div class="pole">
+    <div class="pid">${i+1}</div>
+    <input class="num" id="pole_no_${i}" aria-label="電柱${i+1}の番号" placeholder="電柱番号" value="${esc(p.no)}">
+    <input class="memo" id="pole_memo_${i}" aria-label="電柱${i+1}のメモ" placeholder="メモ(引込元など)" value="${esc(p.memo)}">
+    <button class="x" aria-label="電柱${i+1}を消す" data-del="${i}">×</button></div>`).join("");
+  el.querySelectorAll("input").forEach(inp=>inp.oninput=()=>{const [,k,i]=inp.id.split("_");state.pins[+i][k]=inp.value;refresh();});
+  el.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>removePin(+b.dataset.del));
+}
+
+// ---- 電気契約 ----
+function renderContract(){
+  $("contract").innerHTML=CONTRACTS.map(c=>`<button class="chip" aria-pressed="${state.contract===c}" data-c="${c}">${c}</button>`).join("");
+  $("contract").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{state.contract=b.dataset.c;renderContract();refresh();});
+  $("contractOtherWrap").hidden=state.contract!=="その他(新電力)";
+}
+
+// ---- 写真 ----
+$("photoIn").addEventListener("change",e=>{
+  for(const f of e.target.files)state.photos.push({url:URL.createObjectURL(f),kind:"分電盤"});
+  e.target.value="";renderPhotos();refresh();
+});
+function renderPhotos(){
+  $("photos").innerHTML=state.photos.map((p,i)=>`<div class="ph">
+    <div class="img" style="background-image:url('${p.url}')"><button class="x" data-del="${i}" aria-label="写真${i+1}を消す">×</button></div>
+    <select id="ph_kind_${i}" aria-label="写真${i+1}の種類">${PHOTO_KINDS.map(k=>`<option ${k===p.kind?"selected":""}>${k}</option>`).join("")}</select></div>`).join("");
+  $("photos").querySelectorAll("select").forEach(s=>s.onchange=()=>{state.photos[+s.id.split("_")[2]].kind=s.value;refresh();});
+  $("photos").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{state.photos.splice(+b.dataset.del,1);renderPhotos();refresh();});
+}
+
+// ---- 入力欄とつなぐ ----
+const FIELDS={f_date:"date",f_plan:"plan",f_site:"site",f_name:"name",f_tel:"tel",f_addr:"addr",f_contractOther:"contractOther",
+  f_cust:"cust",f_meter:"meter",f_spot:"spot",f_memo:"memo"};
+for(const [id,k] of Object.entries(FIELDS)){$(id).value=state[k];$(id).addEventListener("input",()=>{state[k]=$(id).value;refresh();});}
+$("f_zip").addEventListener("input",()=>{state.zip=$("f_zip").value;state.zipIsAuto=false;$("zipAuto").hidden=true;refresh();});
+
+// ---- 保存イメージ ----
+function folderName(){return `${state.date||"日付なし"}_${state.site||"現場名なし"}`;}
+function photoNames(){const cnt={};return state.photos.map(p=>{cnt[p.kind]=(cnt[p.kind]||0)+1;return `${p.kind}_${cnt[p.kind]}.jpg`;});}
+function renderPreview(){
+  const [y,m]=(state.date||"----").split("-");const names=photoNames();
+  $("tree").textContent=`OneDrive/アプリ/現地調査/\n  ${y}年/\n    ${+m||"--"}月/\n      ${folderName()}/\n        調査表.xlsx\n        写真/`+
+    (names.length?names.map(n=>`\n          ${n}`).join(""):"\n          (まだありません)");
+  const contract=state.contract==="その他(新電力)"?(state.contractOther||"その他"):state.contract;
+  const rows=[["調査日",state.date,1],["工事予定日",state.plan,1],["客名",state.name],["住所",state.addr],["〒",state.zip,1],["TEL",state.tel,1],["電気契約",contract],
+    ["お客様番号",state.cust,1],["計器番号",state.meter,1],["供給地点特定番号",state.spot,1],["メモ",state.memo]];
+  $("xl").innerHTML=`<table>
+    <tr class="colh"><td colspan="3">調査表.xlsx ― シート「調査表」 ${esc(state.date)} ${esc(state.site)}</td></tr>
+    ${rows.map(r=>`<tr><th>${r[0]}</th><td colspan="2" class="${r[2]?"num":""}">${esc(r[1])}</td></tr>`).join("")}
+    <tr><th>地図</th><td colspan="2">ピンを立てた地図の画像が入ります(次の段階で作ります)</td></tr>
+    <tr class="colh"><td>電柱</td><td>電柱番号</td><td>メモ</td></tr>
+    ${state.pins.length?state.pins.map((p,i)=>`<tr><th>${i+1}</th><td class="num">${esc(p.no)}</td><td>${esc(p.memo)}</td></tr>`).join(""):`<tr><td colspan="3">(電柱なし)</td></tr>`}
+    <tr><th>写真</th><td colspan="2">${state.photos.length} 枚(写真フォルダ)</td></tr></table>`;
+}
+function refresh(){renderPreview();$("status").textContent=`電柱 ${state.pins.length}本・写真 ${state.photos.length}枚`;}
+
+// ---- 一覧 ----
+function renderSites(){
+  const q=$("q").value.trim();
+  const items=saved.filter(s=>!q||(s.site+s.addr).includes(q)).sort((a,b)=>b.date.localeCompare(a.date));
+  if(!items.length){$("sites").innerHTML=`<div class="empty">見つかりませんでした</div>`;return;}
+  const byY={};items.forEach(s=>{const [y,m]=s.date.split("-");((byY[y]??={})[+m]??=[]).push(s);});
+  $("sites").innerHTML=Object.keys(byY).sort().reverse().map(y=>`<div><p class="year">${y}年</p>`+
+    Object.keys(byY[y]).sort((a,b)=>b-a).map(m=>`<p class="month">${m}月</p><div class="list">`+
+      byY[y][m].map(s=>`<button class="site"><span class="d">${s.date.slice(5).replace("-","/")}</span>
+        <span class="nm">${esc(s.site)}</span><span class="meta">電柱${s.poles}・写真${s.photos}</span><span class="addr">${esc(s.addr)}</span></button>`).join("")+`</div>`).join("")+`</div>`).join("");
+  $("sites").querySelectorAll(".site").forEach(b=>b.onclick=()=>toast("本番では、この現場の調査表(Excel)と写真フォルダを開きます"));
+}
+$("q").oninput=renderSites;
+
+// ---- 切り替え・保存 ----
+function show(list){
+  $("viewInput").hidden=list;$("viewList").hidden=!list;$("savebar").hidden=list;
+  $("tabInput").setAttribute("aria-pressed",!list);$("tabList").setAttribute("aria-pressed",list);
+  if(list)renderSites();else if(map)setTimeout(()=>map.invalidateSize(),50);window.scrollTo(0,0);
+}
+$("tabInput").onclick=()=>show(false);$("tabList").onclick=()=>show(true);
+$("btnSave").onclick=()=>{
+  if(!state.site){toast("現場名を入れてください(フォルダ名になります)");$("f_site").focus();return;}
+  saved=saved.filter(s=>s.date+s.site!==state.date+state.site);
+  saved.push({date:state.date,site:state.site,addr:state.addr,poles:state.pins.length,photos:state.photos.length});
+  toast(`保存しました(試作:一覧に追加しただけです)\n現地調査/${folderName()}`);
+};
+let tt;function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,2800);}
+
+// ---- はじめ ----
+renderContract();renderPoles();renderPhotos();refresh();initMap();
+if(map&&USE_SAMPLE){ // 見本の電柱を2本
+  addPin({lat:SAMPLE_CENTER[0]+0.00035,lng:SAMPLE_CENTER[1]-0.0004},"見本幹 12","");
+  addPin({lat:SAMPLE_CENTER[0]-0.0003,lng:SAMPLE_CENTER[1]+0.00045},"見本幹 13 東1","引込元");
+  setHome(SAMPLE_CENTER);
+}else if(map){map.setView(SAMPLE_CENTER,14);}
+if(!USE_SAMPLE){
+  $("modeNote").textContent="試作版です。保存の機能はまだつながっていません(OneDrive への保存は次の段階で追加します)。お客様の情報はまだ入れないでください。";
+}
+</script>
+
+</html>
