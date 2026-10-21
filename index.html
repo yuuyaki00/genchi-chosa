@@ -44,6 +44,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .brand .l{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .brand h1{margin:0;font-size:20px;letter-spacing:.04em}
 .tag{font-size:12px;color:var(--accent-ink);background:var(--accent);padding:2px 8px;border-radius:4px;font-weight:700}
+.toprt{display:flex;gap:8px}
+a.theme{text-decoration:none;display:inline-block}
 .theme{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px;gap:4px}
 .seg button{font:inherit;font-size:14px;border:0;border-radius:7px;padding:8px;background:transparent;color:var(--sub);cursor:pointer}
@@ -157,8 +159,8 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <div class="l"><h1>現地調査シート</h1><span class="tag">試作 v0.7</span></div>
-      <button class="theme" id="themeBtn" aria-label="表示の明るさを切り替え">表示:自動</button>
+      <div class="l"><h1>現地調査シート</h1><span class="tag">試作 v0.7.2</span></div>
+      <div class="toprt"><a class="theme" href="guide.html" id="guideLink">使い方</a><button class="theme" id="themeBtn" aria-label="表示の明るさを切り替え">表示:自動</button></div>
     </div>
     <div class="seg" role="group" aria-label="画面の切り替え">
       <button id="tabInput" aria-pressed="true">現場で入力(スマホ)</button>
@@ -647,7 +649,8 @@ const XL={
     row([],8);
     full("地図(ピンの番号は下の電柱の表と同じ)",S.section,20);
     const mapTop=r; // 0 始まりの行番号で、この次の行から画像
-    const mapRows=Math.ceil(mapSize.h/20);for(let i=0;i<mapRows;i++)row([],15);
+    const MAP_ROW_PT=15,MAP_PAD_PT=3; // 地図用の行の高さと、上の余白(pt)
+    const mapRows=Math.ceil((mapSize.h*0.75+MAP_PAD_PT*2)/MAP_ROW_PT);for(let i=0;i<mapRows;i++)row([],MAP_ROW_PT);
     full("出典:国土地理院(地理院タイル)",S.note,16);
     row([],8);
     full(`電柱(${rec.pins.length}本)`,S.section,20);
@@ -670,13 +673,22 @@ const XL={
 <sheetData>${sheetData}</sheetData><mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>
 <pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/>
 ${mapPng?'<drawing r:id="rId1"/>':""}</worksheet>`;
-    const E=9525;
+    // 地図の位置:「何行目のどこから、何行目のどこまで」(twoCellAnchor)と、画像の座標(xfrm)の両方を実際の位置にそろえる。
+    // Excel 以外の簡易表示(iPhone のプレビューなど)は座標のほうを読むことがあるため。
+    const E=9525,PT=12700; // 1px と 1pt を EMU にしたもの
+    const htOf=n=>{const x=rows.find(q=>q.r===n);return x&&x.ht?x.ht:15;};
+    let topPt=0;for(let n=1;n<=mapTop;n++)topPt+=htOf(n);
+    const y0=Math.round((topPt+MAP_PAD_PT)*PT),cx=mapSize.w*E,cy=mapSize.h*E;
+    const endPt=MAP_PAD_PT+mapSize.h*0.75,endRow=mapTop+Math.floor(endPt/MAP_ROW_PT),endRowOff=Math.round((endPt-Math.floor(endPt/MAP_ROW_PT)*MAP_ROW_PT)*PT);
+    const COL_PX=[18,24,24,24].map(w=>Math.floor(w*7+5)); // 列の幅(文字数)を px に
+    let endCol=0,left=mapSize.w;while(endCol<COL_PX.length-1&&left>COL_PX[endCol]){left-=COL_PX[endCol];endCol++;}
     const drawing=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-<xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${mapTop}</xdr:row><xdr:rowOff>${4*E}</xdr:rowOff></xdr:from>
-<xdr:ext cx="${mapSize.w*E}" cy="${mapSize.h*E}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="2" name="地図"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>
+<xdr:twoCellAnchor editAs="oneCell"><xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${mapTop}</xdr:row><xdr:rowOff>${MAP_PAD_PT*PT}</xdr:rowOff></xdr:from>
+<xdr:to><xdr:col>${endCol}</xdr:col><xdr:colOff>${left*E}</xdr:colOff><xdr:row>${endRow}</xdr:row><xdr:rowOff>${endRowOff}</xdr:rowOff></xdr:to>
+<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="2" name="地図"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>
 <xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>
-<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${mapSize.w*E}" cy="${mapSize.h*E}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:ln w="9525"><a:solidFill><a:srgbClr val="B7C2BC"/></a:solidFill></a:ln></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor></xdr:wsDr>`;
+<xdr:spPr><a:xfrm><a:off x="0" y="${y0}"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:ln w="9525"><a:solidFill><a:srgbClr val="B7C2BC"/></a:solidFill></a:ln></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor></xdr:wsDr>`;
     const files=[
       {name:"[Content_Types].xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/>
